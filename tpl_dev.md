@@ -5,7 +5,7 @@
 
 在模板目录里放入*options.php*，内容格式如下即可，注意$options变量和注释：
 
-```
+```php
 <?php
 /*@support tpl_options*/
 !defined('EMLOG_ROOT') && exit('access deined!');

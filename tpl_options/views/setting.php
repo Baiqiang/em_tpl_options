@@ -108,9 +108,9 @@ $(function() {
 			trueInput.css('visibility', 'visible');
 		});
 	}
-	window.setImage = function(src, code, msg) {
+	window.setImage = function(src, path, code, msg) {
 		if (code == 0) {
-			$('[name="' + target + '"]').val(src).trigger('change');
+			$('[name="' + target + '"]').val(path).trigger('change');
 			$('[data-name="' + target + '"]').attr('href', src).find('img').attr('src', src);
 		} else {
 			alert('上传失败：' + msg)

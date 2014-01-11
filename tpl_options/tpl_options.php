@@ -231,23 +231,34 @@ class TplOptions {
 		foreach ($_data as $row) {
 			extract($row);
 			$data = unserialize($data);
-			if (!isset($options[$name])) {
-				$options[$name] = array();
+			$templateOptions[$name] = $data;
+		}
+		foreach ($options as $name=>$option) {
+			if (!is_array($option) || !isset($option['name']) || !isset($option['type']) || !isset($this->_types[$option['type']])) {
+				unset($options[$name]);
+				continue;
 			}
+			if (!isset($templateOptions[$name])) {
+				$templateOptions[$name] = $this->getOptionDefaultValue($option, $template);
+			}
+			$depend = isset($option['depend']) ? $option['depend'] : '';
 			switch ($depend) {
 				case 'sort':
-					$sorts = $this->getSorts(true);
-					if (!is_array($data)) {
-						$data = array();
+					$unsorted = isset($option['unsorted']) ? $option['unsorted'] : true;
+					$sorts = $this->getSorts($unsorted);
+					if (!is_array($templateOptions[$name])) {
+						$templateOptions[$name] = array();
 					}
 					foreach ($sorts as $sort) {
-						if (!isset($data[$sort['sid']])) {
-							$data[$sort['sid']] = $this->getOptionDefaultValue($options[$name], $template);
+						if (!isset($templateOptions[$name][$sort['sid']])) {
+							$templateOptions[$name][$sort['sid']] = $this->getOptionDefaultValue($option, $template);
 						}
 					}
 					break;
 			}
-			$templateOptions[$name] = $data;
+			if ($option['type'] == 'image') {
+				$templateOptions[$name] = $this->buildImageUrl($templateOptions[$name]);
+			}
 		}
 		return $this->_templateOptions[$template] = $templateOptions;
 	}
@@ -409,10 +420,10 @@ class TplOptions {
 				$template = $this->arrayGet($_POST, 'template');
 				$result = $this->upload($template, $file, $target);
 				extract($result);
+				$src = '';
 				if ($path) {
-					$src = BLOG_URL . substr($path, 3);
-				} else {
-					$src = '';
+					$path = substr($path, 3);
+					$src = BLOG_URL . $path;
 				}
 				ob_clean();
 				include $this->view('upload');
@@ -451,7 +462,7 @@ class TplOptions {
 					continue;
 				}
 				$option['id'] = $name;
-				$option['value'] = $this->getOptionValue($option, $storedOptions, $template);
+				$option['value'] = $storedOptions[$name];
 			}
 			$this->_options = $options;
 			if (!empty($_POST)) {
@@ -720,7 +731,7 @@ class TplOptions {
 							'{name}' => $option['id'] . "[{$sid}]",
 							'{value}' => $this->encode($option['value'][$sid]),
 							'{label}' => '',
-							'{checked}' => '',
+							'{path}' => $this->getImagePath($option['value'][$sid]),
 							'{rich}' => $this->getRichString($option),
 						));
 					}
@@ -749,7 +760,7 @@ class TplOptions {
 						'{name}' => $option['id'],
 						'{value}' => $this->encode($option['value']),
 						'{label}' => '',
-						'{checked}' => '',
+							'{path}' => $this->getImagePath($option['value']),
 						'{rich}' => $this->getRichString($option),
 					));
 				}
@@ -772,6 +783,13 @@ class TplOptions {
 	 */
 	private function getRichString($option) {
 		return isset($option['rich']) && isset($this->_types[$option['type']]['allowRich']) ? ' option-rich-text' : '';
+	}
+	/**
+	 * @param string $url
+	 * @return string
+	 */
+	private function getImagePath($url) {
+		return str_replace(BLOG_URL, '', $url);
 	}
 
 	/**
@@ -810,7 +828,7 @@ class TplOptions {
 	 * @return void
 	 */
 	private function renderImage($option) {
-		$tpl = '<span class="image-tip">友情提示：选择文件后将会立刻上传覆盖原图</span><br><a href="{value}" target="_blank" data-name="{name}"><img src="{value}"></a><br><input type="file" accept="image/*" data-target="{name}"><input type="hidden" name="{name}" value="{value}">';
+		$tpl = '<span class="image-tip">友情提示：选择文件后将会立刻上传覆盖原图</span><br><a href="{value}" target="_blank" data-name="{name}"><img src="{value}"></a><br><input type="file" accept="image/*" data-target="{name}"><input type="hidden" name="{name}" value="{path}">';
 		$this->renderByTpl($option, $tpl, false);
 	}
 
@@ -947,6 +965,13 @@ class TplOptions {
 			return $options;
 		}
 		return false;
+	}
+
+	private function buildImageUrl($path) {
+		if (is_array($path)) {
+			return array_map(array($this, 'buildImageUrl'), $path);
+		}
+		return preg_match('{(https?|ftp)://}i', $path) ? $path : BLOG_URL . $path;
 	}
 
 	/**

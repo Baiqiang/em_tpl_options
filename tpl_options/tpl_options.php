@@ -69,6 +69,9 @@ class TplOptions {
 	//是否ajax请求
 	private $_isAjax = false;
 
+	//页面
+	private $_pages;
+
 	/**
 	 * 单例入口
 	 * @return TplOptions
@@ -139,8 +142,6 @@ class TplOptions {
 		$this->_arrayTypes = array(
 			'checkbox',
 			'tag',
-			'sort',
-			'page',
 		);
 		$this->_isAjax = $this->arrayGet($_SERVER, 'HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest';
 
@@ -301,6 +302,25 @@ class TplOptions {
 			));
 		}
 		return $sorts;
+	}
+
+	/**
+	 * 获取所有页面
+	 * @return array
+	 */
+	private function getPages() {
+		if ($this->_pages !== null) {
+			return $this->_pages;
+		}
+		$data = $this->queryAll('blog', array(
+			'type' => 'page',
+			'hide' => 'n',
+		), 'gid, title');
+		$pages = array();
+		foreach ($data as $page) {
+			$pages[$page['gid']] = $this->encode($page['title']);
+		}
+		return $this->_pages = $pages;
 	}
 
 	/**
@@ -481,13 +501,13 @@ class TplOptions {
 							}
 							foreach ($sorts as $sort) {
 								$sid = $sort['sid'];
-								if (!isset($data[$sid]) || (in_array($type, $this->_arrayTypes) && !is_array($data[$sid]))) {
+								if (!isset($data[$sid]) || $this->shouldBeArray($options[$name], $data[$sid])) {
 									$data[$sid] = $this->getOptionDefaultValue($options[$name], $template);
 								}
 							}
 							break;
 					}
-					if (in_array($type, $this->_arrayTypes) && !is_array($data)) {
+					if ($this->shouldBeArray($options[$name], $data)) {
 						$data = array();
 					}
 					$newOptions[$name] = array(
@@ -511,6 +531,25 @@ class TplOptions {
 			include $this->view('setting');
 		}
 		include $this->view('footer');
+	}
+
+	/**
+	 * 判断是否本该为数组但不是数组的
+	 * @param array $option
+	 * @param mixed $data
+	 * @return boolean
+	 */
+	private function shouldBeArray($option, $data) {
+		if (is_array($data)) {
+			return false;
+		}
+		if (in_array($option['type'], $this->_arrayTypes)) {
+			return true;
+		}
+		if (in_array($option['type'], array('sort', 'page')) && isset($opton['multi']) && $opton['multi']) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -627,7 +666,17 @@ class TplOptions {
 					break;
 
 				case 'page':
+					if (!isset($option['multi']) || !$option['multi']) {
+						$pages = $this->getPages();
+						$default = $this->arrayGet(array_keys($pages), 0);
+						break;
+					}
 				case 'sort':
+					if (!isset($option['multi']) || !$option['multi']) {
+						$sorts = $this->getSorts();
+						$default = $this->arrayGet(array_keys($sorts), 0);
+						break;
+					}
 				case 'tag':
 					$default = array();
 					break;
@@ -837,16 +886,13 @@ class TplOptions {
 	 * @return void
 	 */
 	private function renderPage($option) {
-		$pages = $this->queryAll('blog', array(
-			'type' => 'page',
-			'hide' => 'n',
-		), 'gid, title');
-		$values = array();
-		foreach ($pages as $page) {
-			$values[$page['gid']] = $this->encode($page['title']);
+		$pages = $this->getPages();
+		$option['values'] = $pages;
+		if (isset($option['multi']) && $option['multi']) {
+			$this->renderCheckbox($option);
+		} else {
+			$this->renderRadio($option);
 		}
-		$option['values'] = $values;
-		$this->renderCheckbox($option);
 	}
 
 	/**
@@ -863,7 +909,11 @@ class TplOptions {
 			$values[$sid] = $sort['sortname'];
 		}
 		$option['values'] = $values;
-		$this->renderCheckbox($option);
+		if (isset($option['multi']) && $option['multi']) {
+			$this->renderCheckbox($option);
+		} else {
+			$this->renderRadio($option);
+		}
 	}
 
 	/**
@@ -1043,7 +1093,11 @@ class TplOptions {
 		return $object->data;
 	}
 }
-function _g($name) {
-	return TplOptions::getInstance()->$name;
+function _g($name = null) {
+	if ($name === null) {
+		return TplOptions::getInstance()->getTemplateOptions();
+	} else {
+		return TplOptions::getInstance()->$name;
+	}
 }
 TplOptions::getInstance()->init();

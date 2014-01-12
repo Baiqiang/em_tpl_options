@@ -46,8 +46,8 @@ $options = array(
 
 1. 对于所有类型，default属性用于指定默认值，当没有指定default时，使用values里第一个值，若都没有指定，则会使用奇怪的默认值。
 2. 对于radio和chexkbox，values属性用来设置各个按钮的值和显示名称。
-3. 除sort外，均可以指定depend为sort，表示该选项可以根据不同的分类设置不同的值，当指定depend为sort时，可选unsorted属性，为true时
-4. 表示包括未分类，为false不包括，默认为true。
+3. 除sort外，均可以指定depend为sort，表示该选项可以根据不同的分类设置不同的值，当指定depend为sort时，可选unsorted属性，为true时，表示包括未分类，为false不包括，默认为true。
+4. sort和page可设置multi属性为true，表示多选。
 5. description属性可选，用以描述该选项。
 6. 若type为text，可设置multi属性为true，表示多行文本，即input和textarea的区别，可选属性rich用以支持富文本，若设置该值，将加载编辑器。
 

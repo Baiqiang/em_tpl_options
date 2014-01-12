@@ -647,7 +647,7 @@ class TplOptions {
 							1 => '是'
 						);
 					}
-					$default = reset($option['values']);
+					$default = $this->arrayGet(array_keys($option['values']), 0);
 					break;
 
 				case 'checkbox':

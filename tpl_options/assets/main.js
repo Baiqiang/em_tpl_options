@@ -78,7 +78,8 @@ $(function() {
     if (that.is('.selected')) {
       return;
     }
-    var left = that.parent(), right = left.siblings('.option-sort-right');
+    var left = that.parent(),
+      right = left.siblings('.option-sort-right');
     left.find('.selected').removeClass('selected');
     that.addClass('selected');
     right.find('.option-sort-option').removeClass('selected').eq(that.index()).addClass('selected');
@@ -114,7 +115,7 @@ $(function() {
     $('form.tpl-options-form').trigger('submit');
   });
   //定义方法
-  var initRichText = (function () {
+  var initRichText = (function() {
     var num = 0;
     return function() {
       $('.option-rich-text').each(function() {
@@ -143,6 +144,7 @@ $(function() {
     target = '';
     loading(false);
   };
+
   function initOptionSort() {
     $('.option-sort-left').each(function() {
       $(this).find('.option-sort-name:first').addClass('selected');
@@ -151,6 +153,7 @@ $(function() {
       $(this).find('.option-sort-option:first').addClass('selected');
     });
   }
+
   function loading(enable) {
     if (enable === undefined) {
       enable = true;
@@ -161,6 +164,7 @@ $(function() {
       loadingDom.removeClass('loading');
     }
   }
+
   function showMsg(code, msg) {
     message.text(msg).css('display', '');
     if (code == 0) {
@@ -175,7 +179,36 @@ $(function() {
       message.attr('class', 'error');
     }
   }
+
   function attr(name) {
     return tplOptions.prefix + name;
+  }
+
+  function loadEditor(id) {
+    editorMap[id] = editorMap[id] || KindEditor.create('#' + id, {
+      resizeMode: 1,
+      allowUpload: false,
+      allowImageUpload: false,
+      allowFlashUpload: false,
+      allowPreviewEmoticons: false,
+      filterMode: false,
+      afterChange: (function() {
+        var i = 0, t;
+        return function() {
+          var that = this;
+          if (t) {
+            window.clearTimeout(t);
+          }
+          if (i++ > 0) {
+            t= window.setTimeout(function() {
+              that.sync();
+              $(that.srcElement[0]).trigger('change');
+            }, 2000);
+          }
+        }
+      })(),
+      urlType: 'domain',
+      items: ['bold', 'italic', 'underline', 'strikethrough', 'forecolor', 'hilitecolor', 'fontname', 'fontsize', 'lineheight', 'removeformat', 'plainpaste', 'quickformat', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'justifyleft', 'justifycenter', 'justifyright', 'link', 'unlink', 'image', 'flash', 'table', 'emoticons', 'code', 'fullscreen', 'source', '|', 'about']
+    });
   }
 });

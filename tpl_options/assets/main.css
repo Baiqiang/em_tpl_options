@@ -1,6 +1,7 @@
 span.tpl-options-setting {
   cursor: pointer;
   color: #2A9DDB;
+  font-size: 12px;
 }
 span.tpl-options-setting:hover {
   color: #333;

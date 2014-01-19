@@ -14,7 +14,6 @@ $(function() {
     visibility: 'hidden'
   }).on('change', function() {
     loading();
-    console.log(input);
     target = input.data('target');
     targetInput.val(target);
     templateInput.val(template);
@@ -134,7 +133,6 @@ $(function() {
   })();
   window.setImage = function(src, path, code, msg) {
     if (code == 0) {
-      console.log(target)
       $('[name="' + target + '"]').val(path).trigger('change');
       $('[data-name="' + target + '"]').attr('href', src).find('img').attr('src', src);
     } else {
@@ -193,14 +191,14 @@ $(function() {
       allowPreviewEmoticons: false,
       filterMode: false,
       afterChange: (function() {
-        var i = 0, t;
+        var t, i = 0;
         return function() {
           var that = this;
           if (t) {
             window.clearTimeout(t);
           }
           if (i++ > 0) {
-            t= window.setTimeout(function() {
+            t = window.setTimeout(function() {
               that.sync();
               $(that.srcElement[0]).trigger('change');
             }, 2000);

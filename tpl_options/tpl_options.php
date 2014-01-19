@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: 模板设置
-Version: -e^iπ
+Version: sqrt(4)
 Plugin URL: https://github.com/Baiqiang/em_tpl_options
 Description: 为支持的模板设置参数。
 ForEmlog: 5.2.0+
@@ -19,6 +19,7 @@ class TplOptions {
 	//插件标识
 	const ID = 'tpl_options';
 	const NAME = '模板设置';
+	const VERSION = 'sqrt(4)';
 
 	//数据表前缀
 	private $_prefix = 'tpl_options_';
@@ -65,9 +66,6 @@ class TplOptions {
 
 	//当前模板
 	private $_currentTemplate;
-
-	//是否ajax请求
-	private $_isAjax = false;
 
 	//页面
 	private $_pages;
@@ -143,33 +141,56 @@ class TplOptions {
 			'checkbox',
 			'tag',
 		);
-		$this->_isAjax = $this->arrayGet($_SERVER, 'HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest';
 
 		//设置模板目录
 		$this->_view = dirname(__FILE__) . '/views/';
 		$this->_assets = BLOG_URL . 'content/plugins/' . self::ID . '/assets/';
 
 		//注册各个钩子
-		addAction('adm_sidebar_ext', array(
+		$scriptBaseName = strtolower(substr(basename($_SERVER['SCRIPT_NAME']), 0, -4));
+		addAction('adm_main_top', array(
 			$this,
-			'hookAdminSidebar'
+			'hookAdminMainTopIcon'
 		));
 		addAction('data_prebakup', array(
 			$this,
 			'hookDataPreBackup'
 		));
-		addAction('adm_head', array(
-			$this,
-			'hookAdminHead'
-		));
+		if ($scriptBaseName == 'template') {
+			addAction('adm_main_top', array(
+				$this,
+				'hookAdminMainTopData'
+			));
+			addAction('adm_head', array(
+				$this,
+				'hookAdminHead'
+			));
+		}
 	}
 
 	/**
-	 * 后台侧边栏
+	 * 侧栏小图标
 	 * @return void
 	 */
-	public function hookAdminSidebar() {
-		printf('<div class="sidebarsubmenu" id="%s"><a href="%s">%s</a></div>', self::ID, $this->url(), self::NAME);
+	public function hookAdminMainTopIcon() {
+		echo sprintf('<script>$("a[href=\\"template.php\\"]").css("background", "url(%s/setting.png) no-repeat 20px 1px");</script>', $this->_assets);
+	}
+
+	/**
+	 * 输出数据
+	 * @return void
+	 */
+	public function hookAdminMainTopData() {
+		$templates = $this->getTemplates();
+		$data = array(
+			'templates' => $templates,
+			'prefix' => str_replace('_', '-', $this->_prefix),
+			'baseUrl' => $this->url(),
+			'uploadUrl' => $this->url(array(
+				"do" => "upload"
+			)),
+		);
+		echo sprintf('<script>var tplOptions = %s;</script>', json_encode($data));
 	}
 
 	/**
@@ -189,9 +210,10 @@ class TplOptions {
 	 * @return void
 	 */
 	public function hookAdminHead() {
-		echo sprintf('<link rel="stylesheet" href="%s">', $this->_assets . 'main.css');
+		echo sprintf('<link rel="stylesheet" href="%s">', $this->_assets . 'main.css?ver=' . urlencode(self::VERSION) );
 		echo '<script charset="utf-8" src="./editor/kindeditor.js"></script>';
 		echo '<script charset="utf-8" src="./editor/lang/zh_CN.js"></script>';
+		echo sprintf('<script src="%s"></script>', $this->_assets . 'main.js?ver=' . urlencode(self::VERSION));
 	}
 
 	/**
@@ -229,12 +251,15 @@ class TplOptions {
 		));
 		$templateOptions = array();
 		$options = $this->getTemplateDefinedOptions($template);
+		if ($options === false) {
+			$options = array();
+		}
 		foreach ($_data as $row) {
 			extract($row);
 			$data = unserialize($data);
 			$templateOptions[$name] = $data;
 		}
-		foreach ($options as $name=>$option) {
+		foreach ($options as $name => $option) {
 			if (!is_array($option) || !isset($option['name']) || !isset($option['type']) || !isset($this->_types[$option['type']])) {
 				unset($options[$name]);
 				continue;
@@ -448,31 +473,22 @@ class TplOptions {
 				ob_clean();
 				include $this->view('upload');
 				exit;
-			}
-		} elseif ($template === null) {
-			$templates = $this->getTemplates();
-			$currentTemplate = Option::get('nonce_templet');
-			if (isset($templates[$currentTemplate]['support']) && $templates[$currentTemplate]['support']) {
-				$toSetTemplate = $currentTemplate;
-			} elseif (($firstTemplate = current($templates)) && $firstTemplate['support']) {
-				$toSetTemplate = $this->arrayGet(array_keys($templates), 0);
 			} else {
-				$toSetTemplate = '';
+				emDirect('./template.php');
 			}
-			include $this->view('templates');
-		} else {
+		} elseif ($template !== null) {
 			if (!is_dir(TPLS_PATH . $template)) {
-				emDirect($this->url(array(
+				$this->jsonReturn(array(
 					'code' => 1,
 					'msg' => '该模板不存在',
-				)));
+				));
 			}
 			$options = $this->getTemplateDefinedOptions($template);
 			if ($options === false) {
-				emDirect($this->url(array(
+				$this->jsonReturn(array(
 					'code' => 1,
 					'msg' => '该模板不支持本插件设置',
-				)));
+				));
 			}
 			$this->_currentTemplate = $template;
 			$storedOptions = $this->getTemplateOptions($template);
@@ -522,15 +538,14 @@ class TplOptions {
 					'code' => $result ? 0 : 1,
 					'msg' => '保存模板设置' . ($result ? '成功' : '失败'),
 				);
-				if ($this->_isAjax) {
-					$this->jsonReturn($data);
-				} else {
-					emDirect($this->url($data));
-				}
+				$this->jsonReturn($data);
 			}
+			ob_clean();
 			include $this->view('setting');
+			exit;
+		} else {
+			emDirect('./template.php');
 		}
-		include $this->view('footer');
 	}
 
 	/**
@@ -546,7 +561,10 @@ class TplOptions {
 		if (in_array($option['type'], $this->_arrayTypes)) {
 			return true;
 		}
-		if (in_array($option['type'], array('sort', 'page')) && isset($opton['multi']) && $opton['multi']) {
+		if (in_array($option['type'], array(
+			'sort',
+			'page'
+		)) && isset($opton['multi']) && $opton['multi']) {
 			return true;
 		}
 		return false;
@@ -727,12 +745,12 @@ class TplOptions {
 	 */
 	private function renderByTpl($option, $tpl, $loopValues = true, $placeholder = true) {
 		echo '<div class="option">';
-		echo '<h4 class="option-name">', $this->encode($option['name']), '</h4>';
+		echo '<div class="option-name">', $this->encode($option['name']), '</div>';
+		$depend = isset($option['depend']) ? $option['depend'] : 'none';
+		echo sprintf('<div class="option-body depend-%s">', $depend);
 		if (!empty($option['description'])) {
 			echo '<div class="option-description">', $option['description'], '</div>';
 		}
-		echo '<div class="option-body">';
-		$depend = isset($option['depend']) ? $option['depend'] : '';
 		switch ($depend) {
 			case 'sort':
 				$unsorted = isset($option['unsorted']) ? $option['unsorted'] : true;
@@ -809,7 +827,7 @@ class TplOptions {
 						'{name}' => $option['id'],
 						'{value}' => $this->encode($option['value']),
 						'{label}' => '',
-							'{path}' => $this->getImagePath($option['value']),
+						'{path}' => $this->getImagePath($option['value']),
 						'{rich}' => $this->getRichString($option),
 					));
 				}
@@ -833,6 +851,7 @@ class TplOptions {
 	private function getRichString($option) {
 		return isset($option['rich']) && isset($this->_types[$option['type']]['allowRich']) ? ' option-rich-text' : '';
 	}
+
 	/**
 	 * @param string $url
 	 * @return string
@@ -877,7 +896,7 @@ class TplOptions {
 	 * @return void
 	 */
 	private function renderImage($option) {
-		$tpl = '<span class="image-tip">友情提示：选择文件后将会立刻上传覆盖原图</span><br><a href="{value}" target="_blank" data-name="{name}"><img src="{value}"></a><br><input type="file" accept="image/*" data-target="{name}"><input type="hidden" name="{name}" value="{path}">';
+		$tpl = '<span class="image-tip">友情提示：选择文件后将会立刻上传覆盖原图</span><a href="{value}" target="_blank" data-name="{name}"><img src="{value}"></a><br><input type="file" accept="image/*" data-target="{name}"><input type="hidden" name="{name}" value="{path}">';
 		$this->renderByTpl($option, $tpl, false);
 	}
 
@@ -954,36 +973,20 @@ class TplOptions {
 				continue;
 			}
 			if (@file_exists($headerFile = TPLS_PATH . $file . '/header.php')) {
+				if ($this->getTemplateDefinedOptions($file) === false) {
+					continue;
+				}
 				$tplData = file_get_contents($headerFile);
 				$template = array();
 				preg_match("/Template Name:([^\r\n]+)/i", $tplData, $name);
 				$template['name'] = isset($name[1]) ? trim($name[1]) : $file;
 				$template['file'] = $file;
 				$template['preview'] = $this->getTemplatePreview($file);
-				$template['support'] = $this->getTemplateDefinedOptions($file) !== false;
 				$templates[$file] = $template;
 			}
 		}
 		closedir($handle);
-		uasort($templates, array(
-			$this,
-			'sortTemplate'
-		));
 		return $templates;
-	}
-
-	/**
-	 * 给模板排序
-	 * @param array $templateA
-	 * @param array $templateB
-	 * @return int
-	 */
-	private function sortTemplate($templateA, $templateB) {
-		if (!$templateA['support']) {
-			return 1;
-		} else {
-			return -1;
-		}
 	}
 
 	/**
@@ -1016,10 +1019,12 @@ class TplOptions {
 		}
 		return false;
 	}
-
 	private function buildImageUrl($path) {
 		if (is_array($path)) {
-			return array_map(array($this, 'buildImageUrl'), $path);
+			return array_map(array(
+				$this,
+				'buildImageUrl'
+			), $path);
 		}
 		return preg_match('{(https?|ftp)://}i', $path) ? $path : BLOG_URL . $path;
 	}

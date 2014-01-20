@@ -86,7 +86,7 @@ $(function() {
     var that = $(this);
     var right = that.parent().siblings('.option-sort-right');
     right.find('.option-sort-option').removeClass('selected').eq(that.find('option:selected').index()).addClass('selected');
-  }).on('mouseenter', 'input[type="file"]:not([name="image"])', function() {
+  }).on('mouseenter', '.tpl-options-form input[type="file"]', function() {
     input = $(this);
     trueInput.css(input.offset());
     input.css('visibility', 'hidden');

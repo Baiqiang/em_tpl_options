@@ -654,7 +654,7 @@ class TplOptions {
 	 * @return mixed
 	 */
 	private function getOptionDefaultValue(&$option, $template) {
-		if (isset($option['default'])) {
+		if (isset($option['default']) && !in_array($option['type'], array('page', 'sort', 'tag'))) {
 			$default = $option['default'];
 		} else {
 			switch ($option['type']) {
@@ -662,7 +662,7 @@ class TplOptions {
 					if (!isset($option['values']) || !is_array($option['values'])) {
 						$option['values'] = array(
 							0 => '否',
-							1 => '是'
+							1 => '是',
 						);
 					}
 					$default = $this->arrayGet(array_keys($option['values']), 0);

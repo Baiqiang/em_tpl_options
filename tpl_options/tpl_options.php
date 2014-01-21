@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: 模板设置
-Version: sqrt(4)
+Version: 4782969^(1/14)
 Plugin URL: https://github.com/Baiqiang/em_tpl_options
 Description: 为支持的模板设置参数。
 ForEmlog: 5.2.0+
@@ -19,7 +19,7 @@ class TplOptions {
 	//插件标识
 	const ID = 'tpl_options';
 	const NAME = '模板设置';
-	const VERSION = 'sqrt(4)';
+	const VERSION = '4782969^(1/14)';
 
 	//数据表前缀
 	private $_prefix = 'tpl_options_';
@@ -210,7 +210,7 @@ class TplOptions {
 	 * @return void
 	 */
 	public function hookAdminHead() {
-		echo sprintf('<link rel="stylesheet" href="%s">', $this->_assets . 'main.css?ver=' . urlencode(self::VERSION) );
+		echo sprintf('<link rel="stylesheet" href="%s">', $this->_assets . 'main.css?ver=' . urlencode(self::VERSION));
 		echo '<script charset="utf-8" src="./editor/kindeditor.js"></script>';
 		echo '<script charset="utf-8" src="./editor/lang/zh_CN.js"></script>';
 		echo sprintf('<script src="%s"></script>', $this->_assets . 'main.js?ver=' . urlencode(self::VERSION));
@@ -259,6 +259,8 @@ class TplOptions {
 			$data = unserialize($data);
 			$templateOptions[$name] = $data;
 		}
+		$sorts = $this->getSorts($unsorted);
+		$pages = $this->getPages();
 		foreach ($options as $name => $option) {
 			if (!is_array($option) || !isset($option['name']) || !isset($option['type']) || !isset($this->_types[$option['type']])) {
 				unset($options[$name]);
@@ -271,7 +273,6 @@ class TplOptions {
 			switch ($depend) {
 				case 'sort':
 					$unsorted = isset($option['unsorted']) ? $option['unsorted'] : true;
-					$sorts = $this->getSorts($unsorted);
 					if (!is_array($templateOptions[$name])) {
 						$templateOptions[$name] = array();
 					}
@@ -280,6 +281,20 @@ class TplOptions {
 							$templateOptions[$name][$sort['sid']] = $this->getOptionDefaultValue($option, $template);
 						}
 					}
+					break;
+			}
+			switch ($option['type']) {
+				case 'sort':
+				case 'page':
+					$var = $ {
+							$option['type'] . 's'
+					};
+					if (!isset($var[$templateOptions[$name]]) && !$this->isMulti($option)) {
+						$templateOptions[$name] = $this->getOptionDefaultValue($option, $template);
+					}
+					break;
+
+				default:
 					break;
 			}
 			if ($option['type'] == 'image') {
@@ -564,10 +579,19 @@ class TplOptions {
 		if (in_array($option['type'], array(
 			'sort',
 			'page'
-		)) && isset($opton['multi']) && $opton['multi']) {
+		)) && $this->isMulti($option)) {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * 判断是否为多选/多行文本
+	 * @param array $option
+	 * @return boolean
+	 */
+	private function isMulti($option) {
+		return isset($option['multi']) && $option['multi'];
 	}
 
 	/**
@@ -654,7 +678,11 @@ class TplOptions {
 	 * @return mixed
 	 */
 	private function getOptionDefaultValue(&$option, $template) {
-		if (isset($option['default']) && !in_array($option['type'], array('page', 'sort', 'tag'))) {
+		if (isset($option['default']) && !in_array($option['type'], array(
+			'page',
+			'sort',
+			'tag'
+		))) {
 			$default = $option['default'];
 		} else {
 			switch ($option['type']) {
@@ -684,13 +712,13 @@ class TplOptions {
 					break;
 
 				case 'page':
-					if (!isset($option['multi']) || !$option['multi']) {
+					if (!$this->isMulti($option)) {
 						$pages = $this->getPages();
 						$default = $this->arrayGet(array_keys($pages), 0);
 						break;
 					}
 				case 'sort':
-					if (!isset($option['multi']) || !$option['multi']) {
+					if (!$this->isMulti($option)) {
 						$sorts = $this->getSorts();
 						$default = $this->arrayGet(array_keys($sorts), 0);
 						break;
@@ -883,7 +911,7 @@ class TplOptions {
 	 * @return void
 	 */
 	private function renderText($option) {
-		if (isset($option['multi']) && $option['multi']) {
+		if ($this->isMulti($option)) {
 			$tpl = '<textarea name="{name}" rows="8" class="option-textarea{rich}">{value}</textarea>';
 		} else {
 			$tpl = '<input type="text" name="{name}" value="{value}"><br>';
@@ -907,7 +935,7 @@ class TplOptions {
 	private function renderPage($option) {
 		$pages = $this->getPages();
 		$option['values'] = $pages;
-		if (isset($option['multi']) && $option['multi']) {
+		if ($this->isMulti($option)) {
 			$this->renderCheckbox($option);
 		} else {
 			$this->renderRadio($option);
@@ -928,7 +956,7 @@ class TplOptions {
 			$values[$sid] = $sort['sortname'];
 		}
 		$option['values'] = $values;
-		if (isset($option['multi']) && $option['multi']) {
+		if ($this->isMulti($option)) {
 			$this->renderCheckbox($option);
 		} else {
 			$this->renderRadio($option);

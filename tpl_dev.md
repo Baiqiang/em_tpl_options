@@ -50,6 +50,7 @@ $options = array(
 4. sort和page可设置multi属性为true，表示多选。
 5. description属性可选，用以描述该选项。
 6. 若type为text，可设置multi属性为true，表示多行文本，即input和textarea的区别，可选属性rich用以支持富文本，若设置该值，将加载编辑器。
+7. 若type为sort、page或者tag，且设置了多选，默认值将为空，否则将为第一个该类型的值。
 
 ###模板里如何调用设置项
 

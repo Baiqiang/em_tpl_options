@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: 模板设置
-Version: 4782969^(1/14)
+Version: 2+2
 Plugin URL: https://github.com/Baiqiang/em_tpl_options
 Description: 为支持的模板设置参数。
 ForEmlog: 5.2.0+
@@ -259,6 +259,7 @@ class TplOptions {
 			$data = unserialize($data);
 			$templateOptions[$name] = $data;
 		}
+		$unsorted = isset($option['unsorted']) ? $option['unsorted'] : true;
 		$sorts = $this->getSorts($unsorted);
 		$pages = $this->getPages();
 		foreach ($options as $name => $option) {
@@ -272,7 +273,6 @@ class TplOptions {
 			$depend = isset($option['depend']) ? $option['depend'] : '';
 			switch ($depend) {
 				case 'sort':
-					$unsorted = isset($option['unsorted']) ? $option['unsorted'] : true;
 					if (!is_array($templateOptions[$name])) {
 						$templateOptions[$name] = array();
 					}
@@ -286,10 +286,9 @@ class TplOptions {
 			switch ($option['type']) {
 				case 'sort':
 				case 'page':
-					$var = $ {
-							$option['type'] . 's'
-					};
-					if (!isset($var[$templateOptions[$name]]) && !$this->isMulti($option)) {
+					$varName = $option['type'] . 's';
+					$var = $$varName;
+					if (!$this->isMulti($option) && !isset($var[$templateOptions[$name]])) {
 						$templateOptions[$name] = $this->getOptionDefaultValue($option, $template);
 					}
 					break;
@@ -368,7 +367,15 @@ class TplOptions {
 	 * @return MySql 数据库连接实例
 	 */
 	public function getDb() {
-		return $this->_db === null ? $this->_db = MySql::getInstance() : $this->_db;
+		if ($this->_db !== null) {
+			return $this->_db;
+		}
+		if (class_exists('Database', true)) {
+			$this->_db = Database::getInstance();
+		} else {
+			$this->_db = MySql::getInstance();
+		}
+		return $this->_db;
 	}
 
 	/**
@@ -422,7 +429,7 @@ class TplOptions {
 		$subSql = array();
 		foreach ($condition as $key => $value) {
 			if (is_string($value)) {
-				$value = mysql_real_escape_string($value);
+				$value = mysql_escape_string($value);
 				$subSql[] = "(`$key`='$value')";
 			} elseif (is_array($value)) {
 				$subSql[] = "(`$key` IN (" . $this->implodeSqlArray($value) . '))';
@@ -461,7 +468,7 @@ class TplOptions {
 	 * @return string 形如('value1', 'value2')的字符串
 	 */
 	private function implodeSqlArray($data) {
-		return implode(',', array_map(create_function('$val', 'return "\'" . mysql_real_escape_string($val) . "\'";'), $data));
+		return implode(',', array_map(create_function('$val', 'return "\'" . mysql_escape_string($val) . "\'";'), $data));
 	}
 
 	/**

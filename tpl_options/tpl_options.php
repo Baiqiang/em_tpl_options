@@ -631,7 +631,12 @@ class TplOptions {
 			$result['msg'] = '错误的文件类型';
 			return $result;
 		}
-		if ($file['size'] > Option::UPLOADFILE_MAXSIZE) {
+		if (method_exists('Option', 'getAttMaxSize')) {
+			$maxSize = Option::getAttMaxSize();
+		} else {
+			$maxSize = Option::UPLOADFILE_MAXSIZE;
+		}
+		if ($file['size'] > $maxSize) {
 			$result['code'] = 103;
 			$result['msg'] = '文件大小超出emlog的限制';
 			return $result;

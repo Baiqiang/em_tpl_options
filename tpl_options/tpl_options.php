@@ -19,7 +19,7 @@ class TplOptions {
 	//插件标识
 	const ID = 'tpl_options';
 	const NAME = '模板设置';
-	const VERSION = '4782969^(1/14)';
+	const VERSION = '2+2';
 
 	//数据表前缀
 	private $_prefix = 'tpl_options_';
@@ -370,7 +370,7 @@ class TplOptions {
 		if ($this->_db !== null) {
 			return $this->_db;
 		}
-		if (class_exists('Database', true)) {
+		if (class_exists('Database', false)) {
 			$this->_db = Database::getInstance();
 		} else {
 			$this->_db = MySql::getInstance();

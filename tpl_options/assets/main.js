@@ -53,6 +53,7 @@ $(function() {
       data: {
         template: $(this).data('template')
       },
+      cache: false,
       beforeSend: function() {
         loading();
         editorMap = {};
@@ -97,6 +98,7 @@ $(function() {
       url: that.attr('action'),
       type: 'post',
       data: that.serialize(),
+      cache: false,
       dataType: 'json',
       // beforeSend: loading,
       success: function(data) {

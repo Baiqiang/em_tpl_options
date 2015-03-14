@@ -8,6 +8,7 @@ $(function() {
   var loadingDom = $('<div />').appendTo(body);
   var message = $('<span />').appendTo($('.containertitle2:first')).css('position', 'fixed');
   var timer, input, targetInput, target, templateInput, template;
+  var currentTemplate = $('table:first img').attr('src').match(/\/templates\/(.*?)\/preview.jpg/)[1];
   var trueInput = $('<input type="file" name="image">').css({
     position: 'absolute',
     margin: 0,
@@ -27,7 +28,7 @@ $(function() {
     targetInput = $('<input type="hidden" name="target">'),
     templateInput = $('<input type="hidden" name="template">')
   ).appendTo(body).attr({
-    action: tplOptions.uploadUrl,
+    action: tplOptions.uploadUrl + '&template=' + currentTemplate,
     target: 'upload-image',
     enctype: 'multipart/form-data',
     method: 'post'
@@ -41,7 +42,6 @@ $(function() {
   }
   //当前模板
   (function() {
-    var currentTemplate = $('table:first img').attr('src').match(/\/templates\/(.*?)\/preview.jpg/)[1];
     if (tplOptions.templates[currentTemplate]) {
       $('<br>').insertBefore($('<span>设置</span>').appendTo($('table:first td:last')).addClass(attr('setting')).data('template', currentTemplate));
     }

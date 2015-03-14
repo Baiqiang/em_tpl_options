@@ -484,7 +484,6 @@ class TplOptions {
 			if ($do == 'upload' && isset($_FILES['image'])) {
 				$file = $_FILES['image'];
 				$target = $this->arrayGet($_POST, 'target');
-				$template = $this->arrayGet($_POST, 'template');
 				$result = $this->upload($template, $file, $target);
 				extract($result);
 				$src = '';
@@ -641,7 +640,7 @@ class TplOptions {
 			$result['msg'] = '文件大小超出emlog的限制';
 			return $result;
 		}
-		$uploadPath = Option::UPLOADFILE_PATH . self::ID . "/$template/";
+		$uploadPath = Option::UPLOADFILE_PATH . self::ID . "/{$template}/";
 		$fileName = rtrim(str_replace(array(
 			'[',
 			']'
